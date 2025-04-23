@@ -146,7 +146,15 @@ void blelloch_gpu_scan(const std::vector<int>& input, std::vector<int>& output, 
     cudaEventDestroy(stop);
 }
 
-// Benchmark for a single size
+double max_absolute_error(const std::vector<int>& ref, const std::vector<int>& test) {
+    double max_err = 0;
+    for (size_t i = 0; i < ref.size(); ++i) {
+        double err = std::abs(ref[i] - test[i]);
+        if (err > max_err) max_err = err;
+    }
+    return max_err;
+}
+
 void benchmark(int n) {
     std::vector<int> input(n);
     for (int& x : input) x = rand() % 10;
@@ -166,11 +174,16 @@ void benchmark(int n) {
     // Blelloch GPU
     blelloch_gpu_scan(input, out_blelloch, t_blelloch);
 
-    // Output results
+    // Error checks
+    double err_naive = max_absolute_error(out_cpu, out_naive);
+    double err_blelloch = max_absolute_error(out_cpu, out_blelloch);
+
     std::cout << "\n--- Benchmark n = " << n << " ---\n";
     std::cout << "CPU:      " << t_cpu     << " ms\n";
-    std::cout << "Naive GPU:" << t_naive   << " ms  Match? " << (out_naive == out_cpu ? "✅" : "❌") << "\n";
-    std::cout << "Blelloch: " << t_blelloch << " ms  Match? " << (out_blelloch == out_cpu ? "✅" : "❌") << "\n";
+    std::cout << "Naive GPU:" << t_naive   << " ms  Match? " << (out_naive == out_cpu ? "✅" : "❌")
+              << "  Max Error: " << err_naive << "\n";
+    std::cout << "Blelloch: " << t_blelloch << " ms  Match? " << (out_blelloch == out_cpu ? "✅" : "❌")
+              << "  Max Error: " << err_blelloch << "\n";
 }
 
 int main() {

@@ -99,13 +99,3 @@ void blelloch_scan(const std::vector<int>& input, std::vector<int>& output) {
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 }
-
-int main() {
-    std::vector<int> sizes = {1 << 10, 1 << 14, 1 << 17, 1 << 20, 1 << 23}; // 1K to 8M
-
-    for (int n : sizes) {
-        benchmark(n);
-    }
-
-    return 0;
-}

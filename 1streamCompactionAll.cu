@@ -74,6 +74,17 @@ __global__ void blellochScanKernel(int* d_out, const int* d_in, int n) {
     if (2 * tid + 1 < n) d_out[2 * tid + 1] = temp[2 * tid + 1];
 }
 
+void streamCompactionCPU(const std::vector<int>& input, std::vector<int>& output, float& time_ms) {
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for (int x : input) {
+        if (x != 0) output.push_back(x);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    time_ms = std::chrono::duration<float, std::milli>(end - start).count();
+}
+
 void streamCompactionNaive(const std::vector<int>& input, std::vector<int>& output, float& time_ms) {
     int n = input.size();
     int* d_input = nullptr, * d_flags = nullptr, * d_indices = nullptr, * d_output = nullptr;
@@ -165,18 +176,23 @@ void streamCompactionBlelloch(const std::vector<int>& input, std::vector<int>& o
 }
 
 int main() {
-    const int N = 1 << 11; // 1M elements
+    const int N = 1 << 20; // 1M elements
     std::vector<int> input(N);
     for (int& x : input) x = (rand() % 5 == 0) ? 0 : (rand() % 100);
 
-    std::vector<int> out_naive, out_blelloch;
-    float t_naive = 0.0f, t_blelloch = 0.0f;
+    std::vector<int> out_cpu, out_naive, out_blelloch;
+    float t_cpu = 0.0f, t_naive = 0.0f, t_blelloch = 0.0f;
 
+    streamCompactionCPU(input, out_cpu, t_cpu);
     streamCompactionNaive(input, out_naive, t_naive);
     streamCompactionBlelloch(input, out_blelloch, t_blelloch);
 
     std::cout << "--- Stream Compaction Benchmark (Input size = " << N << ") ---\n";
-    std::cout << "Naive Time:    " << t_naive << " ms, Output size: " << out_naive.size() << ", Match? " << ((out_naive == out_blelloch) ? "✅" : "❌") << "\n";
-    std::cout << "Blelloch Time: " << t_blelloch << " ms, Output size: " << out_blelloch.size() << "\n";
+    std::cout << "CPU Time:      " << t_cpu << " ms, Output size: " << out_cpu.size() << "\n";
+    std::cout << "Naive Time:    " << t_naive << " ms, Output size: " << out_naive.size()
+              << ", Match CPU? " << ((out_cpu == out_naive) ? "✅" : "❌") << "\n";
+    std::cout << "Blelloch Time: " << t_blelloch << " ms, Output size: " << out_blelloch.size()
+              << ", Match CPU? " << ((out_cpu == out_blelloch) ? "✅" : "❌") << "\n";
+
     return 0;
 }
