@@ -10,19 +10,12 @@
 
 __global__ void blelloch_scan_kernel(int* d_out, const int* d_in, int n) {
     extern __shared__ int temp[]; // shared memory
-    int tid = threadIdx.x;
-    int offset = 1;
-
-    int ai = tid;
-    int bi = tid + (n / 2);
-
+    int tid = threadIdx.x;int offset = 1;int ai = tid;int bi = tid + (n / 2);
     // Load input into shared memory
     if (2 * tid < n) temp[2 * tid] = d_in[2 * tid];
     else temp[2 * tid] = 0;
-
     if (2 * tid + 1 < n) temp[2 * tid + 1] = d_in[2 * tid + 1];
     else temp[2 * tid + 1] = 0;
-
     // Up-sweep (reduction)
     for (int d = n >> 1; d > 0; d >>= 1) {
         __syncthreads();
@@ -33,10 +26,8 @@ __global__ void blelloch_scan_kernel(int* d_out, const int* d_in, int n) {
         }
         offset <<= 1;
     }
-
     // Set last element to zero for exclusive scan
     if (tid == 0) temp[n - 1] = 0;
-
     // Down-sweep
     for (int d = 1; d < n; d <<= 1) {
         offset >>= 1;
@@ -49,9 +40,7 @@ __global__ void blelloch_scan_kernel(int* d_out, const int* d_in, int n) {
             temp[bi] += t;
         }
     }
-
     __syncthreads();
-
     // Write results to output
     if (2 * tid < n) d_out[2 * tid] = temp[2 * tid];
     if (2 * tid + 1 < n) d_out[2 * tid + 1] = temp[2 * tid + 1];
